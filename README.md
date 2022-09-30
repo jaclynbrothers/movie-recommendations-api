@@ -1,9 +1,9 @@
 # Movie Recommendations API
 This project allows the user to enter in a movie to recommend and its genre. Users can vote on movies that were recommended by clicking the like button and movie recommendations can be deleted.
 
-**Link to project:** 
+**Link to project:** https://movie-recommendations-api.onrender.com/
 
-
+https://user-images.githubusercontent.com/102431119/193353016-a4313b49-e7b4-4d33-b96b-07907c826d30.mp4
 
 ## How It's Made
 
