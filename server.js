@@ -1,50 +1,71 @@
 const express = require('express')
 const app = express()
-const cors = require('cors')
-const PORT = 8000
+const MongoClient = require('mongodb').MongoClient
+const PORT = 2121
+require('dotenv').config()
 
-app.use(cors())
 
-const player = {
-    'luka doncic': {
-        'birthPlace': 'Ljubljana, Slovenia',
-        'height': '6 ft, 7 in',
-        'careerStart': 2015,
-        'position': 'Point Guard, Shooting Guard',
-        'quote': "Everybody acts tough when they're up.",
-        'funFact': 'He can speak four languages - Slovenian, Serbian, English, and Spanish.' 
-    },
-    'giannis antetokounmpo': {
-        'birthPlace': 'Athens, Greece',
-        'height': '6 ft, 11 in',
-        'careerStart': 2013,
-        'position': 'Point Forward, Center',
-        'quote': "What do you call a cow on the floor? Anybody know? Ground beef.",
-        'funFact': 'His nickname is the "Greek Freak".' 
-    },
-    'unknown': {
-        'birthPlace': 'unknown',
-        'height': 'unknown',
-        'careerStart': 0,
-        'position': 'unknown',
-        'quote': 'unknown',
-        'funFact': 'unknown' 
-    }
-}
+let db,
+    dbConnectionStr = process.env.DB_STRING,
+    dbName = 'movie'
 
-app.get('/', (request, response)=>{
-    response.sendFile(__dirname + '/index.html')
+MongoClient.connect(dbConnectionStr, { useUnifiedTopology: true })
+    .then(client => {
+        console.log(`Connected to ${dbName} Database`)
+        db = client.db(dbName)
+    })
+    
+app.set('view engine', 'ejs')
+app.use(express.static('public'))
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
+
+
+app.get('/',(request, response)=>{
+    db.collection('movies').find().sort({likes: -1}).toArray()
+    .then(data => {
+        response.render('index.ejs', { info: data })
+    })
+    .catch(error => console.error(error))
 })
 
-app.get('/api/:name', (request, response)=>{
-    const playerName = request.params.name.toLowerCase()
-    if(player[playerName]){
-        response.json(player[playerName])
-    }else{
-        response.json(player['unknown'])
-    }
+app.post('/addMovie', (request, response) => {
+    db.collection('movies').insertOne({movieName: request.body.movieName,
+    genreName: request.body.genreName, likes: 0})
+    .then(result => {
+        console.log('Movie Added')
+        response.redirect('/')
+    })
+    .catch(error => console.error(error))
+})
+
+app.put('/addOneLike', (request, response) => {
+    db.collection('movies').updateOne({movieName: request.body.movieNameS, genreName: request.body.genreNameS,likes: request.body.likesS},{
+        $set: {
+            likes:request.body.likesS + 1
+        }
+    },{
+        sort: {_id: -1},
+        upsert: true
+    })
+    .then(result => {
+        console.log('Added One Like')
+        response.json('Like Added')
+    })
+    .catch(error => console.error(error))
+
+})
+
+app.delete('/deleteMovie', (request, response) => {
+    db.collection('movies').deleteOne({movieName: request.body.movieNameS})
+    .then(result => {
+        console.log('Movie Deleted')
+        response.json('Movie Deleted')
+    })
+    .catch(error => console.error(error))
+
 })
 
 app.listen(process.env.PORT || PORT, ()=>{
-    console.log(`The server is running on port ${PORT}`)
+    console.log(`Server running on port ${PORT}`)
 })
